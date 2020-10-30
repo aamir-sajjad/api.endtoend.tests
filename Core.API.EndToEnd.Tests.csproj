@@ -7,6 +7,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Azure.Storage.Blob" Version="11.2.2" />
+    <PackageReference Include="Microsoft.Azure.Storage.DataMovement" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.6" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="3.1.6" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="3.1.6" />
@@ -31,8 +33,17 @@
     <Reference Include="Core.API.dll">
       <HintPath>dlls/Core.API.dll</HintPath>
     </Reference>
+    <Reference Include="WindSim.Common.DataLoaders">
+      <HintPath>dlls\WindSim.Common.DataLoaders.dll</HintPath>
+    </Reference>
+    <Reference Include="WindSim.Common.Entities">
+      <HintPath>dlls\WindSim.Common.Entities.dll</HintPath>
+    </Reference>
     <Reference Include="WindSim.Common.Model.dll">
       <HintPath>dlls/WindSim.Common.Model.dll</HintPath>
+    </Reference>
+    <Reference Include="WindSim.Common.Processing">
+      <HintPath>dlls\WindSim.Common.Processing.dll</HintPath>
     </Reference>
   </ItemGroup>
 

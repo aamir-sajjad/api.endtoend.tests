@@ -6,6 +6,8 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using WindSim.Common.DataLoaders.DataLoaders;
+using WindSim.Common.Model.Processing;
 
 namespace Core.API.EndToEnd.Tests
 {
@@ -24,13 +26,13 @@ namespace Core.API.EndToEnd.Tests
                 Console.WriteLine("Test Application Starting...");
                 var services = ConfigureServices();
                 var serviceProvider = services.BuildServiceProvider();
-                var projectId = new Guid("708ec79a-aac1-4022-9976-432acf25101b");
+                var projectId = Guid.NewGuid();
                 var cfdRansTests = serviceProvider.GetService<ICFDRansTests>();
 
                 //upload the project input
                 await cfdRansTests.UploadProjectInput(projectId);
                 //start the job
-                var accessToken = await cfdRansTests.SubmitJob(projectId);
+                //var accessToken = await cfdRansTests.SubmitJob(projectId);
                 
                 //receive progress status, and based on progess status download the output
                 //await cfdRansTests.ConnectToJobNotificationHub(accessToken, projectId.ToString());
@@ -52,6 +54,7 @@ namespace Core.API.EndToEnd.Tests
 
             services.AddSingleton(Configuration);
             services.AddSingleton<ICFDRansTests, CFDRansTests>();
+            services.AddSingleton<IDataLoader, BlobStorageDataLoader>();
             services.AddHttpClient<ICFDRansTests, CFDRansTests>(client =>
             {
                 client.BaseAddress = new Uri(Configuration["WindSim:ApplicationBaseUrl"]);

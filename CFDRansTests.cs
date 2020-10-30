@@ -15,6 +15,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using WindSim.Common.Model.Jobs;
+using WindSim.Common.Model.Processing;
 
 namespace Core.API.EndToEnd.Tests
 {
@@ -29,14 +30,16 @@ namespace Core.API.EndToEnd.Tests
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
+        private readonly IDataLoader _dataLoader;
         private string accessToken;
-        public CFDRansTests(HttpClient httpClient, IConfiguration configuration)
+        public CFDRansTests(HttpClient httpClient, IConfiguration configuration, IDataLoader dataLoader)
         {
             _httpClient = httpClient;
             _httpClient.Timeout = TimeSpan.FromMinutes(20);
             accessToken = AuthenticationHelper.GetToken(_httpClient).GetAwaiter().GetResult();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             _configuration = configuration;
+            _dataLoader = dataLoader;
         }
 
         public async Task<string> SubmitJob(Guid projectId)
@@ -149,15 +152,12 @@ namespace Core.API.EndToEnd.Tests
             Console.WriteLine("UploadProjectInput: at the start");
             try
             {
-                var bytes = File.ReadAllBytes(GetDefualtProjectInputPath());
-                var file = Convert.ToBase64String(bytes);
-                var fileModel = new FileModelViewModel() { FileBase64String = file, ProjectId = projectId, FileName = "input.zip" };
-
-                var content = JsonSerializer.Serialize(fileModel);
-                HttpContent httpContent = new StringContent(content, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync("api/CFDRans/UploadProjectInput", httpContent);
-
+                var response = await _httpClient.GetAsync($"api/CFDRans/GetProjectInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
+                var cfdInputUploadUri = await response.Content.ReadAsStringAsync();
+                var srcPath = GetDefualtProjectInputPath();
+                await _dataLoader.UploadInput(cfdInputUploadUri, srcPath);
+
                 Console.WriteLine("UploadProjectInput: at the end");
             }
             catch (Exception ex)
