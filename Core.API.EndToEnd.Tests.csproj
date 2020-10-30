@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="3.1.6" />
+    <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </None>
+    <Reference Include="Core.API.Common.dll">
+      <HintPath>dlls/Core.API.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Core.API.TestHelper.dll">
+      <HintPath>dlls/Core.API.TestHelper.dll</HintPath>
+    </Reference>
+    <Reference Include="Core.API.dll">
+      <HintPath>dlls/Core.API.dll</HintPath>
+    </Reference>
+    <Reference Include="WindSim.Common.Model.dll">
+      <HintPath>dlls/WindSim.Common.Model.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
