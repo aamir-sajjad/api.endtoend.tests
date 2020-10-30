@@ -32,10 +32,10 @@ namespace Core.API.EndToEnd.Tests
                 //upload the project input
                 await cfdRansTests.UploadProjectInput(projectId);
                 //start the job
-                //var accessToken = await cfdRansTests.SubmitJob(projectId);
+                var accessToken = await cfdRansTests.SubmitJob(projectId);
                 
                 //receive progress status, and based on progess status download the output
-                //await cfdRansTests.ConnectToJobNotificationHub(accessToken, projectId.ToString());
+                await cfdRansTests.ConnectToJobNotificationHub(accessToken, projectId.ToString());
 
                 Console.WriteLine("Press enter to to unsubscribe from jobs progress updates and to end the test");
                 Console.ReadLine();

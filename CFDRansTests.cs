@@ -96,8 +96,6 @@ namespace Core.API.EndToEnd.Tests
 
                     Console.WriteLine($"First message received after minutes : {timer.Elapsed.TotalMinutes}");
 
-                    ListOutputFiles(projectId, message.JobId, message.Module).GetAwaiter().GetResult();
-
                 });
                 Console.WriteLine($"hubConnection {hubConnection.State} {hubConnection.ConnectionId}");
                 Console.WriteLine("ConnectToJobNotificationHub: at the end of ConnectToJobNotificationHub");
@@ -109,42 +107,6 @@ namespace Core.API.EndToEnd.Tests
                 throw ex;
             }
 
-        }
-
-        private async Task ListOutputFiles(string projectId, string jobId, Module module)
-        {
-            Console.WriteLine($"ListOutputFiles: at the start of ListOutputFiles project {projectId} {jobId} {module}");
-            try
-            {
-                var modelJobOutput = new JobOutputViewModel()
-                {
-                    ProjectId = new Guid(projectId),
-                    JobId = new Guid(jobId),
-                    Module = module
-                };
-                var content = JsonSerializer.Serialize(modelJobOutput);
-                Console.WriteLine($"modelJobOutput {content}");
-                HttpContent httpContent = new StringContent(content, Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.PostAsync("api/CFDrans/ListOutputFiles", httpContent);
-
-
-                response.EnsureSuccessStatusCode();
-
-                var jsonJobObject = await response.Content.ReadAsStringAsync();
-                var files = JsonSerializer.Deserialize<List<string>>(jsonJobObject);
-                foreach (var fileName in files)
-                {
-                    Console.WriteLine(fileName);
-                }
-                Console.WriteLine("ListOutputFiles: at the end of ListOutputFiles");
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"ListOutputFiles: {ex.Message}");
-                throw ex;
-            }
         }
 
         public async Task UploadProjectInput(Guid projectId)
