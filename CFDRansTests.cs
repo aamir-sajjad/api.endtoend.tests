@@ -79,6 +79,7 @@ namespace Core.API.EndToEnd.Tests
                 timer.Start();
 
                 var baseUrl = _configuration["WindSim:ApplicationBaseUrl"];
+                Console.WriteLine($"baseUrl {baseUrl}");
                 var hubUrl = $"{baseUrl}/MessageHub?projectId={projectId}";
                 var hubConnection = new HubConnectionBuilder()
                   .WithUrl(new Uri(hubUrl), options =>

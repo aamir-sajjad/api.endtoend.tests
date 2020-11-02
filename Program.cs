@@ -26,14 +26,14 @@ namespace Core.API.EndToEnd.Tests
                 Console.WriteLine("Test Application Starting...");
                 var services = ConfigureServices();
                 var serviceProvider = services.BuildServiceProvider();
-                var projectId = Guid.NewGuid();
+                var projectId = new Guid("44033fa4-465d-401d-b6cf-0b292498bbd1");
                 var cfdRansTests = serviceProvider.GetService<ICFDRansTests>();
 
                 //upload the project input
                 await cfdRansTests.UploadProjectInput(projectId);
                 //start the job
                 var accessToken = await cfdRansTests.SubmitJob(projectId);
-                
+
                 //receive progress status, and based on progess status download the output
                 await cfdRansTests.ConnectToJobNotificationHub(accessToken, projectId.ToString());
 
