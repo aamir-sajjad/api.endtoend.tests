@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -92,10 +93,21 @@ namespace Core.API.EndToEnd.Tests
 
                 hubConnection.On<JobNotificationResponse>("MessageReceived", (message) =>
                 {
+                    if (string.IsNullOrEmpty(message.JobProgressStatusMessage))
+                    {
+                        var projectJobsStatus = GetProjectStatus(projectId).GetAwaiter().GetResult();
+                        //cfd
+                        var isCFDRan = projectJobsStatus.All(x => (x.Module == Module.Terrain || x.Module == Module.Windfields) && x.Status == Status.Completed);
+                        Console.WriteLine($"isCFDRan {isCFDRan}");
+                        if (isCFDRan)
+                        {
+                            // todo: submit synthesis job
+                        }
+                        //synthesis
 
-                    Console.WriteLine($" message received module {message.Module} job {message.JobId} status {message.Status}");
+                        //aep
 
-                    Console.WriteLine($"First message received after minutes : {timer.Elapsed.TotalMinutes}");
+                    }
 
                 });
                 Console.WriteLine($"hubConnection {hubConnection.State} {hubConnection.ConnectionId}");
@@ -136,6 +148,27 @@ namespace Core.API.EndToEnd.Tests
             var projectPath = Path.Combine("SEWPGProjectInput", fileName);
             return projectPath;
         }
+
+        public async Task<List<JobsStatusViewModel>> GetProjectStatus(string projectId)
+        {
+            Console.WriteLine("GetProjectStatus: at the start");
+            try
+            {
+                var response = await _httpClient.GetAsync($"api/project/GetJobsStatus/{projectId}");
+                response.EnsureSuccessStatusCode();
+                var statusMessageJson = await response.Content.ReadAsStringAsync();
+                Console.WriteLine("GetProjectStatus: at the end");
+                return JsonSerializer.Deserialize<List<JobsStatusViewModel>>(statusMessageJson);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"GetProjectStatus: {ex.Message}");
+                throw ex;
+            }
+
+        }
+
 
         //end of class
     }

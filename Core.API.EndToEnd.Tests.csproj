@@ -24,8 +24,8 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </None>
-    <Reference Include="Core.API.Common.dll">
-      <HintPath>dlls/Core.API.Common.dll</HintPath>
+    <Reference Include="Core.API.Common">
+      <HintPath>dlls\Core.API.Common.dll</HintPath>
     </Reference>
     <Reference Include="Core.API.TestHelper.dll">
       <HintPath>dlls/Core.API.TestHelper.dll</HintPath>
