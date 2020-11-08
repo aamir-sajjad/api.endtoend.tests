@@ -96,16 +96,40 @@ namespace Core.API.EndToEnd.Tests
                     if (string.IsNullOrEmpty(message.JobProgressStatusMessage))
                     {
                         var projectJobsStatus = GetProjectStatus(projectId).GetAwaiter().GetResult();
+
+                        foreach (var jobStatus in projectJobsStatus)
+                        {
+                            Console.WriteLine($"job {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
+                        }
+
                         //cfd
                         var isCFDRan = projectJobsStatus.All(x => (x.Module == Module.Terrain || x.Module == Module.Windfields) && x.Status == Status.Completed);
-                        Console.WriteLine($"isCFDRan {isCFDRan}");
+                        Console.WriteLine($"is CFDRan completed {isCFDRan}");
                         if (isCFDRan)
                         {
                             // todo: submit synthesis job
+                            // first upload the synthesis input
+                            // then submit the job
                         }
+
                         //synthesis
+                        var isSynthesis = projectJobsStatus.All(x => (x.Module == Module.Terrain || x.Module == Module.Windfields || x.Module == Module.Objects || x.Module == Module.WindResources) && x.Status == Status.Completed);
+                        Console.WriteLine($"is Synthesis completed {isSynthesis}");
+                        if (isSynthesis)
+                        {
+                            // todo: submit aep job
+                            // first upload the aep input
+                            // then submit the job
+                        }
 
                         //aep
+                        var isAEP = projectJobsStatus.All(x => (x.Module == Module.Terrain || x.Module == Module.Windfields || x.Module == Module.Objects || x.Module == Module.WindResources || x.Module == Module.Energy || x.Module == Module.Loads || x.Module == Module.Exports) && x.Status == Status.Completed);
+                        Console.WriteLine($"is AEP completed {isAEP}");
+
+                        if (isAEP)
+                        {
+                            // todo: Exit 0
+                        }
 
                     }
 
