@@ -19,7 +19,7 @@ namespace Core.API.EndToEnd.Tests
            .AddEnvironmentVariables()
            .Build();
 
-        static async Task<int> Main(string[] args)
+        static async Task Main(string[] args)
         {
             try
             {
@@ -43,23 +43,17 @@ namespace Core.API.EndToEnd.Tests
 
                 #region Experimental Code
 
-                //-Next 2 hours
+                Console.WriteLine("Please enter the project id");
+                var projectId = Console.ReadLine();
+                Console.WriteLine($"project id {projectId}");
 
-                //. for now read the source path from console read and project id
-                //.check if file exist and upload the project input
-                //. download the input uploaded to the destination path read from console.read
+                Console.WriteLine("Please enter the source path");
+                var sourcePath = Console.ReadLine();
+                Console.WriteLine($"source path {sourcePath}");
 
-                //Console.WriteLine("Please enter the project id");
-                //var projectId = Console.ReadLine();
-                //Console.WriteLine($"project id {projectId}");
-
-                //Console.WriteLine("Please enter the source path");
-                //var sourcePath = Console.ReadLine();
-                //Console.WriteLine($"source path {sourcePath}");
-
-                //Console.WriteLine("Please enter the detination path");
-                //var destinationPath = Console.ReadLine();
-                //Console.WriteLine($"detination path {destinationPath}");
+                Console.WriteLine("Please enter the detination path");
+                var destinationPath = Console.ReadLine();
+                Console.WriteLine($"detination path {destinationPath}");
 
                 // copy the the file from source folder and place it in desitnation folder
                 // source path: D:\Project\CoreAPIEndToEndTests\Core.API.EndToEnd.Tests\SEWPGProjectInput
@@ -67,6 +61,10 @@ namespace Core.API.EndToEnd.Tests
 
                 //CopyDirectory(@sourcePath, @destinationPath);
 
+                if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(destinationPath))
+                {
+                    Environment.Exit(1);
+                }
 
                 #endregion Expermintal Code
 
@@ -76,16 +74,16 @@ namespace Core.API.EndToEnd.Tests
                 var serviceProvider = services.BuildServiceProvider();
                 //var projectId = new Guid("529b3da6-0c72-4e5b-877e-eb323cb67e54");
                 var cfdRansTests = serviceProvider.GetService<ICFDRansTests>();
+                cfdRansTests.SourcePath = sourcePath;
+                cfdRansTests.DestinationPath = destinationPath;
 
                 // upload the project input
-                //await cfdRansTests.UploadProjectInput(projectId);
+                await cfdRansTests.UploadCFDRansInput(new Guid(projectId), sourcePath);
                 // start the job
-                //var accessToken = await cfdRansTests.SubmitJob(projectId);
+                var accessToken = await cfdRansTests.SubmitCFDJob(new Guid(projectId));
 
                 // receive progress status, and based on progess status download the output
-                //await cfdRansTests.ConnectToJobNotificationHub(accessToken, projectId.ToString());
-
-                //Console.WriteLine("Press enter to to unsubscribe from jobs progress updates and to end the test");
+                await cfdRansTests.ConnectToJobNotificationHub(accessToken, projectId.ToString());
 
                 #endregion Cloud Job
 
@@ -97,10 +95,11 @@ namespace Core.API.EndToEnd.Tests
             {
                 Console.WriteLine("Core Exception...!");
                 Console.WriteLine($"Main: {ex.Message}");
+                Environment.Exit(1);
             }
             Console.ReadLine();
             await Task.CompletedTask;
-            return 0;
+            Environment.Exit(0);
         }
         private static IServiceCollection ConfigureServices()
         {

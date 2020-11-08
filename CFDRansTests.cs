@@ -22,13 +22,27 @@ namespace Core.API.EndToEnd.Tests
 {
     public interface ICFDRansTests
     {
-        Task UploadProjectInput(Guid projectId);
-        Task<string> SubmitJob(Guid projectId);
+        string SourcePath
+        {
+            get;
+            set;
+        }
+        string DestinationPath
+        {
+            get;
+            set;
+        }
+        Task UploadCFDRansInput(Guid projectId, string srcPath);
+        Task UploadSynthesisInput(Guid projectId, string srcPath);
+        Task UploadAEPInput(Guid projectId, string srcPath);
+        Task<string> SubmitCFDJob(Guid projectId);
         Task<HubConnection> ConnectToJobNotificationHub(string accessToken, string projectId);
     }
 
     public class CFDRansTests : ICFDRansTests
     {
+        public string SourcePath { get; set; }
+        public string DestinationPath { get; set; }
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
         private readonly IDataLoader _dataLoader;
@@ -43,11 +57,12 @@ namespace Core.API.EndToEnd.Tests
             _dataLoader = dataLoader;
         }
 
-        public async Task<string> SubmitJob(Guid projectId)
+        // cfd job
+        public async Task<string> SubmitCFDJob(Guid projectId)
         {
             try
             {
-                Console.WriteLine("SubmitJob: at the start of SubmitJob");
+                Console.WriteLine("SubmitCFDJob: at the start of SubmitJob");
                 var timer = new Stopwatch();
                 timer.Restart();
                 timer.Start();
@@ -60,12 +75,67 @@ namespace Core.API.EndToEnd.Tests
                 response.EnsureSuccessStatusCode();
 
 
-                Console.WriteLine($"SubmitJob: at the end of SubmitJob took minutes: {timer.Elapsed.TotalMinutes}");
+                Console.WriteLine($"SubmitCFDJob: at the end of SubmitJob took minutes: {timer.Elapsed.TotalMinutes}");
                 return accessToken;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"SubmitJob: {ex.Message}");
+                Console.WriteLine($"SubmitCFDJob: {ex.Message}");
+                throw ex;
+            }
+        }
+
+        // synthesis job
+        public async Task<string> SubmitSynthesisJob(Guid projectId)
+        {
+            try
+            {
+                Console.WriteLine("SubmitSynthesisJob: at the start of SubmitJob");
+                var timer = new Stopwatch();
+                timer.Restart();
+                timer.Start();
+
+                var model = new SynthesisSubmitJobModel { ProjectId = projectId };
+                var content = JsonSerializer.Serialize(model);
+                HttpContent httpContent = new StringContent(content, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("api/Synthesis/SubmitJob", httpContent);
+
+                response.EnsureSuccessStatusCode();
+
+
+                Console.WriteLine($"SubmitSynthesisJob: at the end of SubmitJob took minutes: {timer.Elapsed.TotalMinutes}");
+                return accessToken;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SubmitSynthesisJob: {ex.Message}");
+                throw ex;
+            }
+        }
+
+        // aep job
+        public async Task<string> SubmitAEPJob(Guid projectId)
+        {
+            try
+            {
+                Console.WriteLine("SubmitAEPJob: at the start of SubmitJob");
+                var timer = new Stopwatch();
+                timer.Restart();
+                timer.Start();
+
+                var model = new AEPSubmitJobModel { ProjectId = projectId };
+                var content = JsonSerializer.Serialize(model);
+                HttpContent httpContent = new StringContent(content, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("api/AEP/SubmitJob", httpContent);
+
+                response.EnsureSuccessStatusCode();
+
+                Console.WriteLine($"SubmitAEPJob: at the end of SubmitJob took minutes: {timer.Elapsed.TotalMinutes}");
+                return accessToken;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SubmitAEPJob: {ex.Message}");
                 throw ex;
             }
         }
@@ -108,8 +178,10 @@ namespace Core.API.EndToEnd.Tests
                         if (isCFDRan)
                         {
                             // todo: submit synthesis job
-                            // first upload the synthesis input
+                            // first upload the synthesis input from source path
+                            UploadSynthesisInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
                             // then submit the job
+                            SubmitSynthesisJob(new Guid(projectId)).GetAwaiter().GetResult();
                         }
 
                         //synthesis
@@ -118,8 +190,10 @@ namespace Core.API.EndToEnd.Tests
                         if (isSynthesis)
                         {
                             // todo: submit aep job
-                            // first upload the aep input
+                            // first upload the aep input from source path
+                            UploadAEPInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
                             // then submit the job
+                            SubmitAEPJob(new Guid(projectId)).GetAwaiter().GetResult();
                         }
 
                         //aep
@@ -128,7 +202,9 @@ namespace Core.API.EndToEnd.Tests
 
                         if (isAEP)
                         {
-                            // todo: Exit 0
+                            // todo: download the input to the destination path
+                            DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
+                            Environment.Exit(0);
                         }
 
                     }
@@ -146,7 +222,7 @@ namespace Core.API.EndToEnd.Tests
 
         }
 
-        public async Task UploadProjectInput(Guid projectId)
+        public async Task UploadCFDRansInput(Guid projectId, string srcPath)
         {
             Console.WriteLine("UploadProjectInput: at the start");
             try
@@ -154,7 +230,6 @@ namespace Core.API.EndToEnd.Tests
                 var response = await _httpClient.GetAsync($"api/CFDRans/GetProjectInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
                 var cfdInputUploadUri = await response.Content.ReadAsStringAsync();
-                var srcPath = GetDefualtProjectInputPath();
                 await _dataLoader.UploadInput(cfdInputUploadUri, srcPath);
 
                 Console.WriteLine("UploadProjectInput: at the end");
@@ -166,11 +241,42 @@ namespace Core.API.EndToEnd.Tests
             }
         }
 
-        private string GetDefualtProjectInputPath()
+        public async Task UploadSynthesisInput(Guid projectId, string srcPath)
         {
-            var fileName = "input.zip";
-            var projectPath = Path.Combine("SEWPGProjectInput", fileName);
-            return projectPath;
+            Console.WriteLine("UploadSynthesisInput: at the start");
+            try
+            {
+                var response = await _httpClient.GetAsync($"api/Synthesis/GetSynthesisInputUploadUri/{projectId}");
+                response.EnsureSuccessStatusCode();
+                var synthesisInputUploadUri = await response.Content.ReadAsStringAsync();
+                await _dataLoader.UploadInput(synthesisInputUploadUri, srcPath);
+
+                Console.WriteLine("UploadSynthesisInput: at the end");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"UploadSynthesisInput: {ex.Message}");
+                throw ex;
+            }
+        }
+
+        public async Task UploadAEPInput(Guid projectId, string srcPath)
+        {
+            Console.WriteLine("UploadAEPInput: at the start");
+            try
+            {
+                var response = await _httpClient.GetAsync($"api/AEP/GetAEPInputUploadUri/{projectId}");
+                response.EnsureSuccessStatusCode();
+                var aepInputUploadUri = await response.Content.ReadAsStringAsync();
+                await _dataLoader.UploadInput(aepInputUploadUri, srcPath);
+
+                Console.WriteLine("UploadAEPInput: at the end");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"UploadAEPInput: {ex.Message}");
+                throw ex;
+            }
         }
 
         public async Task<List<JobsStatusViewModel>> GetProjectStatus(string projectId)
@@ -193,6 +299,24 @@ namespace Core.API.EndToEnd.Tests
 
         }
 
+        public async Task DownloadProjectResult(Guid projectId, string destinationPath)
+        {
+            Console.WriteLine("DownloadProjectResult: at the start");
+            try
+            {
+                var response = await _httpClient.GetAsync($"api/Project/GetProjectOutputUri/{projectId}");
+                response.EnsureSuccessStatusCode();
+                var projectDownloadUri = await response.Content.ReadAsStringAsync();
+                await _dataLoader.DownloadOutput(projectDownloadUri, destinationPath);
+
+                Console.WriteLine("DownloadProjectResult: at the end");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"DownloadProjectResult: {ex.Message}");
+                throw ex;
+            }
+        }
 
         //end of class
     }
