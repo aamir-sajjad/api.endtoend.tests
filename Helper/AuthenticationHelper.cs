@@ -18,7 +18,7 @@ namespace Core.API.EndToEnd.Tests
             //HttpContent httpContentRegister = new StringContent(contentRegister, Encoding.UTF8, "application/json");
             //await httpClient.PostAsync("api/Authentication/Register", httpContentRegister);
 
-            var loginModel = new LoginModel() { Email = "windsim@sewpg.com", Password = "sx@232kLw" };
+            var loginModel = new LoginModel() { Email = "sewpguser@windsim.com", Password = "sx@232kLk" };
             var content = JsonSerializer.Serialize(loginModel);
             HttpContent httpContent = new StringContent(content, Encoding.UTF8, "application/json");
             var response = await httpClient.PostAsync("api/Authentication/Login", httpContent);

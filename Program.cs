@@ -61,6 +61,8 @@ namespace Core.API.EndToEnd.Tests
 
                 //CopyDirectory(@sourcePath, @destinationPath);
 
+                var statusMessage = @"";
+
                 if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(destinationPath))
                 {
                     Environment.Exit(1);

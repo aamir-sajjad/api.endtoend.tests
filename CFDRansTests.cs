@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -227,6 +228,8 @@ namespace Core.API.EndToEnd.Tests
             Console.WriteLine("UploadProjectInput: at the start");
             try
             {
+                var file = new FileInfo(srcPath);
+                File.Move(file.FullName, file.FullName.Replace(file.Name, "cfdrans-input.zip"));
                 var response = await _httpClient.GetAsync($"api/CFDRans/GetProjectInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
                 var cfdInputUploadUri = await response.Content.ReadAsStringAsync();
@@ -246,6 +249,8 @@ namespace Core.API.EndToEnd.Tests
             Console.WriteLine("UploadSynthesisInput: at the start");
             try
             {
+                var file = new FileInfo(srcPath);
+                File.Move(file.FullName, file.FullName.Replace(file.Name, "synthesis-input.zip"));
                 var response = await _httpClient.GetAsync($"api/Synthesis/GetSynthesisInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
                 var synthesisInputUploadUri = await response.Content.ReadAsStringAsync();
@@ -265,6 +270,8 @@ namespace Core.API.EndToEnd.Tests
             Console.WriteLine("UploadAEPInput: at the start");
             try
             {
+                var file = new FileInfo(srcPath);
+                File.Move(file.FullName, file.FullName.Replace(file.Name, "aep-input.zip"));
                 var response = await _httpClient.GetAsync($"api/AEP/GetAEPInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
                 var aepInputUploadUri = await response.Content.ReadAsStringAsync();
@@ -284,11 +291,10 @@ namespace Core.API.EndToEnd.Tests
             Console.WriteLine("GetProjectStatus: at the start");
             try
             {
-                var response = await _httpClient.GetAsync($"api/project/GetJobsStatus/{projectId}");
-                response.EnsureSuccessStatusCode();
-                var statusMessageJson = await response.Content.ReadAsStringAsync();
+                var response = await _httpClient.GetFromJsonAsync<List<JobsStatusViewModel>>($"api/project/GetJobsStatus/{projectId}");
+
                 Console.WriteLine("GetProjectStatus: at the end");
-                return JsonSerializer.Deserialize<List<JobsStatusViewModel>>(statusMessageJson);
+                return response;
 
             }
             catch (Exception ex)
