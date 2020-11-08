@@ -229,11 +229,13 @@ namespace Core.API.EndToEnd.Tests
             try
             {
                 var file = new FileInfo(srcPath);
-                File.Move(file.FullName, file.FullName.Replace(file.Name, "cfdrans-input.zip"));
+                var cfdSrcPath = file.FullName.Replace(file.Name, "cfdrans-input.zip");
+                File.Move(file.FullName, cfdSrcPath);
+                Console.WriteLine($"cfd src path {cfdSrcPath}");
                 var response = await _httpClient.GetAsync($"api/CFDRans/GetProjectInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
                 var cfdInputUploadUri = await response.Content.ReadAsStringAsync();
-                await _dataLoader.UploadInput(cfdInputUploadUri, srcPath);
+                await _dataLoader.UploadInput(cfdInputUploadUri, cfdSrcPath);
 
                 Console.WriteLine("UploadProjectInput: at the end");
             }
@@ -250,11 +252,13 @@ namespace Core.API.EndToEnd.Tests
             try
             {
                 var file = new FileInfo(srcPath);
-                File.Move(file.FullName, file.FullName.Replace(file.Name, "synthesis-input.zip"));
+                var synthesisSrcPath = file.FullName.Replace(file.Name, "synthesis-input.zip");
+                File.Move(file.FullName, synthesisSrcPath);
+
                 var response = await _httpClient.GetAsync($"api/Synthesis/GetSynthesisInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
                 var synthesisInputUploadUri = await response.Content.ReadAsStringAsync();
-                await _dataLoader.UploadInput(synthesisInputUploadUri, srcPath);
+                await _dataLoader.UploadInput(synthesisInputUploadUri, synthesisSrcPath);
 
                 Console.WriteLine("UploadSynthesisInput: at the end");
             }
@@ -271,11 +275,13 @@ namespace Core.API.EndToEnd.Tests
             try
             {
                 var file = new FileInfo(srcPath);
-                File.Move(file.FullName, file.FullName.Replace(file.Name, "aep-input.zip"));
+                var aepSrcPath = file.FullName.Replace(file.Name, "aep-input.zip");
+                File.Move(file.FullName, aepSrcPath);
+
                 var response = await _httpClient.GetAsync($"api/AEP/GetAEPInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
                 var aepInputUploadUri = await response.Content.ReadAsStringAsync();
-                await _dataLoader.UploadInput(aepInputUploadUri, srcPath);
+                await _dataLoader.UploadInput(aepInputUploadUri, aepSrcPath);
 
                 Console.WriteLine("UploadAEPInput: at the end");
             }
