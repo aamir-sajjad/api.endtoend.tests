@@ -174,7 +174,7 @@ namespace Core.API.EndToEnd.Tests
                         }
 
                         //cfd
-                        var isCFDRan = projectJobsStatus.All(x => (x.Module == Module.Terrain || x.Module == Module.Windfields) && x.Status == Status.Completed);
+                        var isCFDRan = projectJobsStatus.All(x => (x.Module == Module.Terrain && x.Module == Module.Windfields) && x.Status == Status.Completed);
                         Console.WriteLine($"is CFDRan completed {isCFDRan}");
                         if (isCFDRan)
                         {
@@ -186,7 +186,7 @@ namespace Core.API.EndToEnd.Tests
                         }
 
                         //synthesis
-                        var isSynthesis = projectJobsStatus.All(x => (x.Module == Module.Terrain || x.Module == Module.Windfields || x.Module == Module.Objects || x.Module == Module.WindResources) && x.Status == Status.Completed);
+                        var isSynthesis = projectJobsStatus.All(x => (x.Module == Module.Terrain && x.Module == Module.Windfields && x.Module == Module.Objects && x.Module == Module.WindResources) && x.Status == Status.Completed);
                         Console.WriteLine($"is Synthesis completed {isSynthesis}");
                         if (isSynthesis)
                         {
@@ -198,7 +198,7 @@ namespace Core.API.EndToEnd.Tests
                         }
 
                         //aep
-                        var isAEP = projectJobsStatus.All(x => (x.Module == Module.Terrain || x.Module == Module.Windfields || x.Module == Module.Objects || x.Module == Module.WindResources || x.Module == Module.Energy || x.Module == Module.Loads || x.Module == Module.Exports) && x.Status == Status.Completed);
+                        var isAEP = projectJobsStatus.All(x => (x.Module == Module.Terrain && x.Module == Module.Windfields && x.Module == Module.Objects && x.Module == Module.WindResources && x.Module == Module.Energy && x.Module == Module.Loads && x.Module == Module.Exports) && x.Status == Status.Completed);
                         Console.WriteLine($"is AEP completed {isAEP}");
 
                         if (isAEP)
@@ -228,14 +228,10 @@ namespace Core.API.EndToEnd.Tests
             Console.WriteLine("UploadProjectInput: at the start");
             try
             {
-                var file = new FileInfo(srcPath);
-                var cfdSrcPath = file.FullName.Replace(file.Name, "cfdrans-input.zip");
-                File.Move(file.FullName, cfdSrcPath);
-                Console.WriteLine($"cfd src path {cfdSrcPath}");
                 var response = await _httpClient.GetAsync($"api/CFDRans/GetProjectInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
                 var cfdInputUploadUri = await response.Content.ReadAsStringAsync();
-                await _dataLoader.UploadInput(cfdInputUploadUri, cfdSrcPath);
+                await _dataLoader.UploadInput(cfdInputUploadUri, srcPath);
 
                 Console.WriteLine("UploadProjectInput: at the end");
             }
@@ -251,14 +247,10 @@ namespace Core.API.EndToEnd.Tests
             Console.WriteLine("UploadSynthesisInput: at the start");
             try
             {
-                var file = new FileInfo(srcPath);
-                var synthesisSrcPath = file.FullName.Replace(file.Name, "synthesis-input.zip");
-                File.Move(file.FullName, synthesisSrcPath);
-
                 var response = await _httpClient.GetAsync($"api/Synthesis/GetSynthesisInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
                 var synthesisInputUploadUri = await response.Content.ReadAsStringAsync();
-                await _dataLoader.UploadInput(synthesisInputUploadUri, synthesisSrcPath);
+                await _dataLoader.UploadInput(synthesisInputUploadUri, srcPath);
 
                 Console.WriteLine("UploadSynthesisInput: at the end");
             }
@@ -274,14 +266,10 @@ namespace Core.API.EndToEnd.Tests
             Console.WriteLine("UploadAEPInput: at the start");
             try
             {
-                var file = new FileInfo(srcPath);
-                var aepSrcPath = file.FullName.Replace(file.Name, "aep-input.zip");
-                File.Move(file.FullName, aepSrcPath);
-
                 var response = await _httpClient.GetAsync($"api/AEP/GetAEPInputUploadUri/{projectId}");
                 response.EnsureSuccessStatusCode();
                 var aepInputUploadUri = await response.Content.ReadAsStringAsync();
-                await _dataLoader.UploadInput(aepInputUploadUri, aepSrcPath);
+                await _dataLoader.UploadInput(aepInputUploadUri, srcPath);
 
                 Console.WriteLine("UploadAEPInput: at the end");
             }
