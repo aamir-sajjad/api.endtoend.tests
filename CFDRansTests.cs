@@ -15,6 +15,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using WindSim.Common.Model.Jobs;
 using WindSim.Common.Model.Processing;
@@ -38,6 +39,7 @@ namespace Core.API.EndToEnd.Tests
         Task UploadAEPInput(Guid projectId, string srcPath);
         Task<string> SubmitCFDJob(Guid projectId);
         Task<HubConnection> ConnectToJobNotificationHub(string accessToken, string projectId);
+        Task<List<JobsStatusViewModel>> GetProjectStatus(string projectId);
     }
 
     public class CFDRansTests : ICFDRansTests
@@ -173,10 +175,12 @@ namespace Core.API.EndToEnd.Tests
                             Console.WriteLine($"job {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
                         }
 
+                        Thread.Sleep(500);
                         //cfd
-                        var isCFDRan = projectJobsStatus.All(x => (x.Module == Module.Terrain && x.Module == Module.Windfields) && x.Status == Status.Completed);
-                        Console.WriteLine($"is CFDRan completed {isCFDRan}");
-                        if (isCFDRan)
+                        var isTerrainCompleted = projectJobsStatus.All(x => (x.Module == Module.Terrain) && x.Status == Status.Completed);
+                        var isWindfieldsCompleted = projectJobsStatus.All(x => (x.Module == Module.Windfields) && x.Status == Status.Completed);
+                        Console.WriteLine($"is isTerrainCompleted completed {isTerrainCompleted} isWindfieldsCompleted {isWindfieldsCompleted}");
+                        if (isTerrainCompleted && isWindfieldsCompleted)
                         {
                             // todo: submit synthesis job
                             // first upload the synthesis input from source path
@@ -184,11 +188,12 @@ namespace Core.API.EndToEnd.Tests
                             // then submit the job
                             SubmitSynthesisJob(new Guid(projectId)).GetAwaiter().GetResult();
                         }
-
+                        Thread.Sleep(500);
                         //synthesis
-                        var isSynthesis = projectJobsStatus.All(x => (x.Module == Module.Terrain && x.Module == Module.Windfields && x.Module == Module.Objects && x.Module == Module.WindResources) && x.Status == Status.Completed);
-                        Console.WriteLine($"is Synthesis completed {isSynthesis}");
-                        if (isSynthesis)
+                        var isObjectCompleted = projectJobsStatus.All(x => (x.Module == Module.Objects) && x.Status == Status.Completed);
+                        var isWindResourcesCompleted = projectJobsStatus.All(x => (x.Module == Module.WindResources) && x.Status == Status.Completed);
+                        Console.WriteLine($"is isObjectCompleted completed {isObjectCompleted} isWindResourcesCompleted {isWindResourcesCompleted}");
+                        if (isTerrainCompleted && isWindfieldsCompleted && isObjectCompleted && isWindResourcesCompleted)
                         {
                             // todo: submit aep job
                             // first upload the aep input from source path
@@ -196,12 +201,14 @@ namespace Core.API.EndToEnd.Tests
                             // then submit the job
                             SubmitAEPJob(new Guid(projectId)).GetAwaiter().GetResult();
                         }
-
+                        Thread.Sleep(500);
                         //aep
-                        var isAEP = projectJobsStatus.All(x => (x.Module == Module.Terrain && x.Module == Module.Windfields && x.Module == Module.Objects && x.Module == Module.WindResources && x.Module == Module.Energy && x.Module == Module.Loads && x.Module == Module.Exports) && x.Status == Status.Completed);
-                        Console.WriteLine($"is AEP completed {isAEP}");
+                        var isLoadCompleted = projectJobsStatus.All(x => (x.Module == Module.Loads) && x.Status == Status.Completed);
+                        var isEnergyCompleted = projectJobsStatus.All(x => (x.Module == Module.Energy) && x.Status == Status.Completed);
+                        var isExportCompleted = projectJobsStatus.All(x => (x.Module == Module.Exports) && x.Status == Status.Completed);
+                        Console.WriteLine($"is AEP isLoadCompleted {isLoadCompleted} isEnergyCompleted {isEnergyCompleted} isExportCompleted {isExportCompleted}");
 
-                        if (isAEP)
+                        if (isTerrainCompleted && isWindfieldsCompleted && isLoadCompleted && isEnergyCompleted && isExportCompleted)
                         {
                             // todo: download the input to the destination path
                             DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
