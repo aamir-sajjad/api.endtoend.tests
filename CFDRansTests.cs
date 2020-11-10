@@ -46,6 +46,9 @@ namespace Core.API.EndToEnd.Tests
     {
         public string SourcePath { get; set; }
         public string DestinationPath { get; set; }
+        private bool IsCFDJobSubmitted { get; set; } = false;
+        private bool IsSynthesisJobSubmitted { get; set; } = false;
+        private bool IsAEPJobSubmitted { get; set; } = false;
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
         private readonly IDataLoader _dataLoader;
@@ -175,20 +178,18 @@ namespace Core.API.EndToEnd.Tests
                             Console.WriteLine($"job {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
                         }
 
-                        Thread.Sleep(2500);
+                        Thread.Sleep(1500);
                         var anyPendingJob = projectJobsStatus.Any(x => x.Status != Status.Completed);
                         //cfd
-                        var isTerrainNotCompleted = projectJobsStatus.Any(x => (x.Module == Module.Terrain) && x.Status != Status.Completed);
-                        var isWindfieldsNotCompleted = projectJobsStatus.Any(x => (x.Module == Module.Windfields) && x.Status != Status.Completed);
-                        Console.WriteLine($"is isTerrainCompleted completed {!isTerrainNotCompleted} isWindfieldsCompleted {!isWindfieldsNotCompleted}");
 
                         string[] cfdModules = { "terrain", "windfields" };
-
-                        var cfdModuleCount = projectJobsStatus.Where(q => cfdModules.Contains(q.Module.ToString().ToLower())).Count();
+                        projectJobsStatus = GetProjectStatus(projectId).GetAwaiter().GetResult();
+                        var cfdModuleCount = projectJobsStatus.Where(q => cfdModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
                         Console.WriteLine($"cfdModuleCount {cfdModuleCount} anyPendingJob {anyPendingJob}");
 
-                        if (!isTerrainNotCompleted && !isWindfieldsNotCompleted && !anyPendingJob && cfdModuleCount == 2)
+                        if (!anyPendingJob && cfdModuleCount == 2 && !IsSynthesisJobSubmitted)
                         {
+                            IsSynthesisJobSubmitted = true;
                             // todo: submit synthesis job
                             // first upload the synthesis input from source path
                             UploadSynthesisInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
@@ -197,18 +198,16 @@ namespace Core.API.EndToEnd.Tests
                         }
                         Thread.Sleep(1500);
                         //synthesis
-                        var isObjectNotCompleted = projectJobsStatus.Any(x => (x.Module == Module.Objects) && x.Status != Status.Completed);
-                        var isWindResourcesNotCompleted = projectJobsStatus.Any(x => x.Module == Module.WindResources && x.Status != Status.Completed);
-                        Console.WriteLine($"is isObjectCompleted completed {!isObjectNotCompleted} isWindResourcesCompleted {!isWindResourcesNotCompleted}");
 
-                        string[] synthesisModules = { "objects", "windResources" };
-
-                        var synthesisModuleCount = projectJobsStatus.Where(q => synthesisModules.Contains(q.Module.ToString().ToLower())).Count();
+                        string[] synthesisModules = { "objects", "windresources" };
+                        projectJobsStatus = GetProjectStatus(projectId).GetAwaiter().GetResult();
+                        var synthesisModuleCount = projectJobsStatus.Where(q => synthesisModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
                         Console.WriteLine($"synthesisModuleCount {synthesisModuleCount} anyPendingJob {anyPendingJob}");
 
 
-                        if (!isTerrainNotCompleted && !isWindfieldsNotCompleted && !isObjectNotCompleted && !isWindResourcesNotCompleted && !anyPendingJob && synthesisModuleCount == 2)
+                        if (!anyPendingJob && synthesisModuleCount == 2 && !IsAEPJobSubmitted)
                         {
+                            IsAEPJobSubmitted = true;
                             // todo: submit aep job
                             // first upload the aep input from source path
                             UploadAEPInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
@@ -217,18 +216,14 @@ namespace Core.API.EndToEnd.Tests
                         }
                         Thread.Sleep(1500);
                         //aep
-                        var isLoadNotCompleted = projectJobsStatus.Any(x => (x.Module == Module.Loads) && x.Status != Status.Completed);
-                        var isEnergyNotCompleted = projectJobsStatus.Any(x => (x.Module == Module.Energy) && x.Status != Status.Completed);
-                        var isExportNotCompleted = projectJobsStatus.Any(x => (x.Module == Module.Exports) && x.Status != Status.Completed);
-                        Console.WriteLine($"is AEP isLoadCompleted {!isLoadNotCompleted} isEnergyCompleted {!isEnergyNotCompleted} isExportCompleted {!isExportNotCompleted}");
 
                         string[] aepModules = { "loads", "energy", "exports" };
-
-                        var aepModuleCount = projectJobsStatus.Where(q => aepModules.Contains(q.Module.ToString().ToLower())).Count();
+                        projectJobsStatus = GetProjectStatus(projectId).GetAwaiter().GetResult();
+                        var aepModuleCount = projectJobsStatus.Where(q => aepModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
                         Console.WriteLine($"aepModuleCount {aepModuleCount} anyPendingJob {anyPendingJob}");
 
 
-                        if (!isTerrainNotCompleted && !isWindfieldsNotCompleted && !isLoadNotCompleted && !isEnergyNotCompleted && !isExportNotCompleted && !anyPendingJob && aepModuleCount == 3)
+                        if (!anyPendingJob && aepModuleCount == 3)
                         {
                             // todo: download the input to the destination path
                             DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
