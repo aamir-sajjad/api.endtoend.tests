@@ -61,8 +61,6 @@ namespace Core.API.EndToEnd.Tests
 
                 //CopyDirectory(@sourcePath, @destinationPath);
 
-                var statusMessage = @"";
-
                 if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(destinationPath))
                 {
                     Environment.Exit(1);
@@ -74,7 +72,7 @@ namespace Core.API.EndToEnd.Tests
 
                 var services = ConfigureServices();
                 var serviceProvider = services.BuildServiceProvider();
-                //var projectId = new Guid("529b3da6-0c72-4e5b-877e-eb323cb67e54");
+                
                 var cfdRansTests = serviceProvider.GetService<ICFDRansTests>();
                 cfdRansTests.SourcePath = sourcePath;
                 cfdRansTests.DestinationPath = destinationPath;
@@ -85,7 +83,9 @@ namespace Core.API.EndToEnd.Tests
                 var accessToken = await cfdRansTests.SubmitCFDJob(new Guid(projectId));
 
                 // receive progress status, and based on progess status download the output
-                await cfdRansTests.ConnectToJobNotificationHub(accessToken, projectId.ToString());
+                //await cfdRansTests.ConnectToJobNotificationHub(accessToken, projectId.ToString());
+                await Task.Delay(180000);
+                await cfdRansTests.CheckStatusInInterval(projectId);
 
                 #endregion Cloud Job
 
@@ -99,6 +99,8 @@ namespace Core.API.EndToEnd.Tests
                 Console.WriteLine($"Main: {ex.Message}");
                 Environment.Exit(1);
             }
+            Console.ReadLine();
+            Console.ReadLine();
             Console.ReadLine();
             await Task.CompletedTask;
             Environment.Exit(0);

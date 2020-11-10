@@ -40,6 +40,7 @@ namespace Core.API.EndToEnd.Tests
         Task<string> SubmitCFDJob(Guid projectId);
         Task<HubConnection> ConnectToJobNotificationHub(string accessToken, string projectId);
         Task<List<JobsStatusViewModel>> GetProjectStatus(string projectId);
+        Task CheckStatusInInterval(string projectId);
     }
 
     public class CFDRansTests : ICFDRansTests
@@ -49,6 +50,8 @@ namespace Core.API.EndToEnd.Tests
         private bool IsCFDJobSubmitted { get; set; } = false;
         private bool IsSynthesisJobSubmitted { get; set; } = false;
         private bool IsAEPJobSubmitted { get; set; } = false;
+        private DateTime startTime = DateTime.UtcNow;
+        HubConnection hubConnection { get; set; }
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
         private readonly IDataLoader _dataLoader;
@@ -158,7 +161,7 @@ namespace Core.API.EndToEnd.Tests
                 var baseUrl = _configuration["WindSim:ApplicationBaseUrl"];
                 Console.WriteLine($"baseUrl {baseUrl}");
                 var hubUrl = $"{baseUrl}/MessageHub?projectId={projectId}";
-                var hubConnection = new HubConnectionBuilder()
+                hubConnection = new HubConnectionBuilder()
                   .WithUrl(new Uri(hubUrl), options =>
                   {
                       options.AccessTokenProvider = () => Task.FromResult(accessToken);
@@ -230,6 +233,7 @@ namespace Core.API.EndToEnd.Tests
                             Environment.Exit(0);
                         }
 
+                        Console.WriteLine($"hubConnection {hubConnection.State} {hubConnection.ConnectionId} time {DateTime.Now.ToShortTimeString()}");
                     }
 
                 });
@@ -338,6 +342,73 @@ namespace Core.API.EndToEnd.Tests
                 Console.WriteLine($"DownloadProjectResult: {ex.Message}");
                 throw ex;
             }
+        }
+
+        public async Task CheckStatusInInterval(string projectId)
+        {
+            while ((DateTime.UtcNow - startTime) < TimeSpan.FromMinutes(180))
+            {
+                Console.WriteLine($"CheckStatusInInterval called at {DateTime.Now.ToShortTimeString()}");
+                await Task.Delay(180000);
+
+                var projectJobsStatus = GetProjectStatus(projectId).GetAwaiter().GetResult();
+
+                foreach (var jobStatus in projectJobsStatus)
+                {
+                    Console.WriteLine($"job {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
+                }
+
+
+                var anyPendingJob = projectJobsStatus.Any(x => x.Status != Status.Completed);
+                //cfd
+
+                string[] cfdModules = { "terrain", "windfields" };
+                var cfdModuleCount = projectJobsStatus.Where(q => cfdModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
+                Console.WriteLine($"cfdModuleCount {cfdModuleCount} anyPendingJob {anyPendingJob}");
+
+                if (!anyPendingJob && cfdModuleCount == 2 && !IsSynthesisJobSubmitted)
+                {
+                    IsSynthesisJobSubmitted = true;
+                    // todo: submit synthesis job
+                    // first upload the synthesis input from source path
+                    UploadSynthesisInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
+                    // then submit the job
+                    SubmitSynthesisJob(new Guid(projectId)).GetAwaiter().GetResult();
+                }
+
+                //synthesis
+
+                string[] synthesisModules = { "objects", "windresources" };
+                var synthesisModuleCount = projectJobsStatus.Where(q => synthesisModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
+                Console.WriteLine($"synthesisModuleCount {synthesisModuleCount} anyPendingJob {anyPendingJob}");
+
+
+                if (!anyPendingJob && synthesisModuleCount == 2 && !IsAEPJobSubmitted)
+                {
+                    IsAEPJobSubmitted = true;
+                    // todo: submit aep job
+                    // first upload the aep input from source path
+                    UploadAEPInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
+                    // then submit the job
+                    SubmitAEPJob(new Guid(projectId)).GetAwaiter().GetResult();
+                }
+
+                //aep
+
+                string[] aepModules = { "loads", "energy", "exports" };
+                var aepModuleCount = projectJobsStatus.Where(q => aepModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
+                Console.WriteLine($"aepModuleCount {aepModuleCount} anyPendingJob {anyPendingJob}");
+
+
+                if (!anyPendingJob && aepModuleCount == 3)
+                {
+                    // todo: download the input to the destination path
+                    DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
+                    Environment.Exit(0);
+                }
+
+            }
+            Environment.Exit(1);
         }
 
         //end of class
