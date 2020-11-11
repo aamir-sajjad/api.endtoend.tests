@@ -359,15 +359,18 @@ namespace Core.API.EndToEnd.Tests
                 }
 
 
-                var anyPendingJob = projectJobsStatus.Any(x => x.Status != Status.Completed);
+                var anyPendingJob = projectJobsStatus.Any(x => x.Status == Status.InProgress || x.Status == Status.Created);
                 //cfd
 
                 string[] cfdModules = { "terrain", "windfields" };
                 var cfdModuleCount = projectJobsStatus.Where(q => cfdModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
                 Console.WriteLine($"cfdModuleCount {cfdModuleCount} anyPendingJob {anyPendingJob}");
 
-                if (!anyPendingJob && cfdModuleCount == 2 && !IsSynthesisJobSubmitted)
+                var isAnyWindfieldsJobCompleted = projectJobsStatus.Any(q => q.Status == Status.Completed);
+
+                if (!anyPendingJob && cfdModuleCount == 2 && !IsSynthesisJobSubmitted && isAnyWindfieldsJobCompleted)
                 {
+                    DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
                     IsSynthesisJobSubmitted = true;
                     // todo: submit synthesis job
                     // first upload the synthesis input from source path
@@ -385,6 +388,7 @@ namespace Core.API.EndToEnd.Tests
 
                 if (!anyPendingJob && synthesisModuleCount == 2 && !IsAEPJobSubmitted)
                 {
+                    DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
                     IsAEPJobSubmitted = true;
                     // todo: submit aep job
                     // first upload the aep input from source path
@@ -406,6 +410,8 @@ namespace Core.API.EndToEnd.Tests
                     DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
                     Environment.Exit(0);
                 }
+
+
 
             }
             Environment.Exit(1);
