@@ -27,33 +27,33 @@ namespace Core.API.EndToEnd.Tests
 
                 #region input from args
 
-                //if (args.Length == 0 || args.Length < 3)
-                //{
-                //    Console.WriteLine("Please provide 1:project id(GUID), 2:source path and 3:destination path.");
-                //    return 1;
-                //}
+                if (args.Length == 0 || args.Length < 3)
+                {
+                    Console.WriteLine("Please provide 1:project id(GUID), 2:source path and 3:destination path.");
+                    Environment.Exit(1);
+                }
 
-                //var projectId = new Guid(args[1]);
-                //var sourcePath = args[2];
-                //var destinationPath = args[3];
+                var projectId = args[1];
+                var sourcePath = args[2];
+                var destinationPath = args[3];
 
-                //Console.WriteLine($"Input paramerters are 1:project id {projectId} 2:source path {sourcePath} 3:destination path {destinationPath}");
+                Console.WriteLine($"Input paramerters are 1:project id {projectId} 2:source path {sourcePath} 3:destination path {destinationPath}");
 
                 #endregion input from args
 
                 #region Experimental Code
 
-                Console.WriteLine("Please enter the project id");
-                var projectId = Console.ReadLine();
-                Console.WriteLine($"project id {projectId}");
+                //Console.WriteLine("Please enter the project id");
+                //var projectId = Console.ReadLine();
+                //Console.WriteLine($"project id {projectId}");
 
-                Console.WriteLine("Please enter the source path");
-                var sourcePath = Console.ReadLine();
-                Console.WriteLine($"source path {sourcePath}");
+                //Console.WriteLine("Please enter the source path");
+                //var sourcePath = Console.ReadLine();
+                //Console.WriteLine($"source path {sourcePath}");
 
-                Console.WriteLine("Please enter the detination path");
-                var destinationPath = Console.ReadLine();
-                Console.WriteLine($"detination path {destinationPath}");
+                //Console.WriteLine("Please enter the detination path");
+                //var destinationPath = Console.ReadLine();
+                //Console.WriteLine($"detination path {destinationPath}");
 
                 // copy the the file from source folder and place it in desitnation folder
                 // source path: D:\Project\CoreAPIEndToEndTests\Core.API.EndToEnd.Tests\SEWPGProjectInput
@@ -61,10 +61,10 @@ namespace Core.API.EndToEnd.Tests
 
                 //CopyDirectory(@sourcePath, @destinationPath);
 
-                if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(destinationPath))
-                {
-                    Environment.Exit(1);
-                }
+                //if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(destinationPath))
+                //{
+                //    Environment.Exit(1);
+                //}
 
                 #endregion Expermintal Code
 
