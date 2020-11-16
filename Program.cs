@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Extensions.Http;
+using Serilog;
 using System;
 using System.IO;
 using System.Net.Http;
@@ -19,11 +21,21 @@ namespace Core.API.EndToEnd.Tests
            .AddEnvironmentVariables()
            .Build();
 
+        public static Serilog.ILogger Logger { get; } = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .Enrich.FromLogContext()
+            .WriteTo.Seq(@"http://51.138.23.89")
+            .CreateLogger();
+
         static async Task Main(string[] args)
         {
+            Log.Logger = Logger;
+
             try
             {
+
                 Console.WriteLine("Test Application Starting...");
+                Log.Information("Core API EndToEnd Test Application Starting...");
 
                 #region input from args
 
@@ -33,9 +45,9 @@ namespace Core.API.EndToEnd.Tests
                     Environment.Exit(1);
                 }
 
-                var projectId = args[1];
-                var sourcePath = args[2];
-                var destinationPath = args[3];
+                var projectId = args[0];
+                var sourcePath = args[1];
+                var destinationPath = args[2];
 
                 Console.WriteLine($"Input paramerters are 1:project id {projectId} 2:source path {sourcePath} 3:destination path {destinationPath}");
 
@@ -72,7 +84,7 @@ namespace Core.API.EndToEnd.Tests
 
                 var services = ConfigureServices();
                 var serviceProvider = services.BuildServiceProvider();
-                
+
                 var cfdRansTests = serviceProvider.GetService<ICFDRansTests>();
                 cfdRansTests.SourcePath = sourcePath;
                 cfdRansTests.DestinationPath = destinationPath;
@@ -84,24 +96,26 @@ namespace Core.API.EndToEnd.Tests
 
                 // receive progress status, and based on progess status download the output
                 //await cfdRansTests.ConnectToJobNotificationHub(accessToken, projectId.ToString());
-                await Task.Delay(180000);
+                await Task.Delay(1800);
                 await cfdRansTests.CheckStatusInInterval(projectId);
 
                 #endregion Cloud Job
 
                 Console.WriteLine("Press Enter key to exit.");
-                Console.ReadLine();
+
                 Console.WriteLine("End of Test Application!");
+
+                Environment.Exit(0);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Core Exception...!");
+                Console.WriteLine("Core API EndToEnd Exception...!");
                 Console.WriteLine($"Main: {ex.Message}");
+                Log.Error(ex, "Core API EndToEnd Exception {message}", ex.Message);
+                await Task.Delay(1800);
                 Environment.Exit(1);
             }
-            Console.ReadLine();
-            Console.ReadLine();
-            Console.ReadLine();
+
             await Task.CompletedTask;
             Environment.Exit(0);
         }
@@ -114,10 +128,15 @@ namespace Core.API.EndToEnd.Tests
             services.AddSingleton<IDataLoader, BlobStorageDataLoader>();
             services.AddHttpClient<ICFDRansTests, CFDRansTests>(client =>
             {
-                client.BaseAddress = new Uri(Configuration["WindSim:ApplicationBaseUrl"]);
+                client.BaseAddress = new Uri(@"https://sewpg-api.azurewebsites.net/");
             })
             .AddPolicyHandler(GetRetryPolicy());
 
+            services.AddLogging(builder =>
+            {
+                builder.SetMinimumLevel(LogLevel.Information);
+                builder.AddSerilog(logger: Logger, dispose: true);
+            });
 
             return services;
         }

@@ -349,7 +349,7 @@ namespace Core.API.EndToEnd.Tests
             while ((DateTime.UtcNow - startTime) < TimeSpan.FromMinutes(180))
             {
                 Console.WriteLine($"CheckStatusInInterval called at {DateTime.Now.ToShortTimeString()}");
-                await Task.Delay(180000);
+                await Task.Delay(20000);
 
                 var projectJobsStatus = GetProjectStatus(projectId).GetAwaiter().GetResult();
 
@@ -404,14 +404,18 @@ namespace Core.API.EndToEnd.Tests
                 Console.WriteLine($"aepModuleCount {aepModuleCount} anyPendingJob {anyPendingJob}");
 
 
-                if (!anyPendingJob && aepModuleCount == 3)
+                if (!anyPendingJob && aepModuleCount > 0)
                 {
                     // todo: download the input to the destination path
                     DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
-                    Environment.Exit(0);
+                    //if energy is failed
+                    var isAnyEnergyFailed = projectJobsStatus.Any(q => q.Module == Module.Energy && q.Status == Status.Failed);
+                    var isAnyLoadFailed = projectJobsStatus.Any(q => q.Module == Module.Loads && q.Status == Status.Failed);
+                    if (isAnyEnergyFailed || isAnyLoadFailed || aepModuleCount == 3)
+                    {
+                        Environment.Exit(0);
+                    }
                 }
-
-
 
             }
             Environment.Exit(1);
