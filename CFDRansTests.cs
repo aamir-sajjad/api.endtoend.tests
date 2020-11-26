@@ -3,6 +3,7 @@ using Core.API.Hubs.Model;
 using Core.API.TestHelper;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Polly;
 using System;
 using System.Collections.Generic;
@@ -56,7 +57,9 @@ namespace Core.API.EndToEnd.Tests
         private readonly IConfiguration _configuration;
         private readonly IDataLoader _dataLoader;
         private string accessToken;
-        public CFDRansTests(HttpClient httpClient, IConfiguration configuration, IDataLoader dataLoader)
+        private readonly ILogger<ICFDRansTests> _logger;
+
+        public CFDRansTests(HttpClient httpClient, IConfiguration configuration, IDataLoader dataLoader, ILogger<ICFDRansTests> logger)
         {
             _httpClient = httpClient;
             _httpClient.Timeout = TimeSpan.FromMinutes(20);
@@ -64,6 +67,7 @@ namespace Core.API.EndToEnd.Tests
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             _configuration = configuration;
             _dataLoader = dataLoader;
+            _logger = logger;
         }
 
         // cfd job
@@ -79,7 +83,13 @@ namespace Core.API.EndToEnd.Tests
                 var model = new CFDRansSubmitJobModel { ProjectId = projectId };
                 var content = JsonSerializer.Serialize(model);
                 HttpContent httpContent = new StringContent(content, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync("api/CFDrans/SubmitJob", httpContent);
+
+                var response = await Policy
+                    .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+                     .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromMilliseconds(retryAttempt * 200), async (result, timeSpan, retryCount, context) =>
+                     {
+                     })
+                     .ExecuteAsync(async () => await _httpClient.PostAsync("api/CFDrans/SubmitJob", httpContent));
 
                 response.EnsureSuccessStatusCode();
 
@@ -107,7 +117,14 @@ namespace Core.API.EndToEnd.Tests
                 var model = new SynthesisSubmitJobModel { ProjectId = projectId };
                 var content = JsonSerializer.Serialize(model);
                 HttpContent httpContent = new StringContent(content, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync("api/Synthesis/SubmitJob", httpContent);
+
+
+                var response = await Policy
+                    .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+                     .WaitAndRetryAsync(2, retryAttempt => TimeSpan.FromMilliseconds(retryAttempt * 200), async (result, timeSpan, retryCount, context) =>
+                     {
+                     })
+                     .ExecuteAsync(async () => await _httpClient.PostAsync("api/Synthesis/SubmitJob", httpContent));
 
                 response.EnsureSuccessStatusCode();
 
@@ -135,7 +152,14 @@ namespace Core.API.EndToEnd.Tests
                 var model = new AEPSubmitJobModel { ProjectId = projectId };
                 var content = JsonSerializer.Serialize(model);
                 HttpContent httpContent = new StringContent(content, Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync("api/AEP/SubmitJob", httpContent);
+
+
+                var response = await Policy
+                    .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+                     .WaitAndRetryAsync(2, retryAttempt => TimeSpan.FromMilliseconds(retryAttempt * 200), async (result, timeSpan, retryCount, context) =>
+                     {
+                     })
+                     .ExecuteAsync(async () => await _httpClient.PostAsync("api/AEP/SubmitJob", httpContent));
 
                 response.EnsureSuccessStatusCode();
 
@@ -192,12 +216,12 @@ namespace Core.API.EndToEnd.Tests
 
                         if (!anyPendingJob && cfdModuleCount == 2 && !IsSynthesisJobSubmitted)
                         {
-                            IsSynthesisJobSubmitted = true;
                             // todo: submit synthesis job
                             // first upload the synthesis input from source path
                             UploadSynthesisInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
                             // then submit the job
                             SubmitSynthesisJob(new Guid(projectId)).GetAwaiter().GetResult();
+                            IsSynthesisJobSubmitted = true;
                         }
                         Thread.Sleep(1500);
                         //synthesis
@@ -210,12 +234,13 @@ namespace Core.API.EndToEnd.Tests
 
                         if (!anyPendingJob && synthesisModuleCount == 2 && !IsAEPJobSubmitted)
                         {
-                            IsAEPJobSubmitted = true;
+                            
                             // todo: submit aep job
                             // first upload the aep input from source path
                             UploadAEPInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
                             // then submit the job
                             SubmitAEPJob(new Guid(projectId)).GetAwaiter().GetResult();
+                            IsAEPJobSubmitted = true;
                         }
                         Thread.Sleep(1500);
                         //aep
@@ -346,77 +371,88 @@ namespace Core.API.EndToEnd.Tests
 
         public async Task CheckStatusInInterval(string projectId)
         {
-            while ((DateTime.UtcNow - startTime) < TimeSpan.FromMinutes(180))
+            while ((DateTime.UtcNow - startTime) < TimeSpan.FromMinutes(280))
             {
-                Console.WriteLine($"CheckStatusInInterval called at {DateTime.Now.ToShortTimeString()}");
-                await Task.Delay(20000);
-
-                var projectJobsStatus = GetProjectStatus(projectId).GetAwaiter().GetResult();
-
-                foreach (var jobStatus in projectJobsStatus)
+                try
                 {
-                    Console.WriteLine($"job {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
-                }
+                    Console.WriteLine($"CheckStatusInInterval called at {DateTime.Now.ToShortTimeString()}");
+                    await Task.Delay(5000);
 
+                    var projectJobsStatus = GetProjectStatus(projectId).GetAwaiter().GetResult();
 
-                var anyPendingJob = projectJobsStatus.Any(x => x.Status == Status.InProgress || x.Status == Status.Created);
-                //cfd
-
-                string[] cfdModules = { "terrain", "windfields" };
-                var cfdModuleCount = projectJobsStatus.Where(q => cfdModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
-                Console.WriteLine($"cfdModuleCount {cfdModuleCount} anyPendingJob {anyPendingJob}");
-
-                var isAnyWindfieldsJobCompleted = projectJobsStatus.Any(q => q.Status == Status.Completed);
-
-                if (!anyPendingJob && cfdModuleCount == 2 && !IsSynthesisJobSubmitted && isAnyWindfieldsJobCompleted)
-                {
-                    DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
-                    IsSynthesisJobSubmitted = true;
-                    // todo: submit synthesis job
-                    // first upload the synthesis input from source path
-                    UploadSynthesisInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
-                    // then submit the job
-                    SubmitSynthesisJob(new Guid(projectId)).GetAwaiter().GetResult();
-                }
-
-                //synthesis
-
-                string[] synthesisModules = { "objects", "windresources" };
-                var synthesisModuleCount = projectJobsStatus.Where(q => synthesisModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
-                Console.WriteLine($"synthesisModuleCount {synthesisModuleCount} anyPendingJob {anyPendingJob}");
-
-
-                if (!anyPendingJob && synthesisModuleCount == 2 && !IsAEPJobSubmitted)
-                {
-                    DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
-                    IsAEPJobSubmitted = true;
-                    // todo: submit aep job
-                    // first upload the aep input from source path
-                    UploadAEPInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
-                    // then submit the job
-                    SubmitAEPJob(new Guid(projectId)).GetAwaiter().GetResult();
-                }
-
-                //aep
-
-                string[] aepModules = { "loads", "energy", "exports" };
-                var aepModuleCount = projectJobsStatus.Where(q => aepModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
-                Console.WriteLine($"aepModuleCount {aepModuleCount} anyPendingJob {anyPendingJob}");
-
-
-                if (!anyPendingJob && aepModuleCount > 0)
-                {
-                    // todo: download the input to the destination path
-                    DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
-                    //if energy is failed
-                    var isAnyEnergyFailed = projectJobsStatus.Any(q => q.Module == Module.Energy && q.Status == Status.Failed);
-                    var isAnyLoadFailed = projectJobsStatus.Any(q => q.Module == Module.Loads && q.Status == Status.Failed);
-                    if (isAnyEnergyFailed || isAnyLoadFailed || aepModuleCount == 3)
+                    foreach (var jobStatus in projectJobsStatus)
                     {
-                        Environment.Exit(0);
+                        Console.WriteLine($"job {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
+                        _logger.LogInformation($"project {projectId} job IsSynthesisJobSubmitted {IsSynthesisJobSubmitted} {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
                     }
+
+
+                    var anyPendingJob = projectJobsStatus.Any(x => x.Status == Status.InProgress || x.Status == Status.Created);
+                    //cfd
+
+                    string[] cfdModules = { "terrain", "windfields" };
+                    var cfdModuleCount = projectJobsStatus.Where(q => cfdModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
+                    Console.WriteLine($"cfdModuleCount {cfdModuleCount} anyPendingJob {anyPendingJob}");
+                    _logger.LogInformation($"{projectId} cfdModuleCount {cfdModuleCount} anyPendingJob {anyPendingJob}");
+
+                    var isAnyWindfieldsJobCompleted = projectJobsStatus.Any(q => q.Status == Status.Completed && q.Module == Module.Windfields);
+
+                    if (!anyPendingJob && cfdModuleCount == 2 && !IsSynthesisJobSubmitted && isAnyWindfieldsJobCompleted)
+                    {
+                        DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
+                        // first upload the synthesis input from source path
+                        UploadSynthesisInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
+                        // then submit the job
+                        SubmitSynthesisJob(new Guid(projectId)).GetAwaiter().GetResult();
+                        IsSynthesisJobSubmitted = true;
+                    }
+
+                    //synthesis
+
+                    string[] synthesisModules = { "objects", "windresources" };
+                    var synthesisModuleCount = projectJobsStatus.Where(q => synthesisModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
+                    Console.WriteLine($"synthesisModuleCount {synthesisModuleCount} anyPendingJob {anyPendingJob}");
+                    _logger.LogInformation($"{projectId} synthesisModuleCount {synthesisModuleCount} anyPendingJob {anyPendingJob}");
+
+                    if (!anyPendingJob && synthesisModuleCount == 2 && !IsAEPJobSubmitted)
+                    {
+                        DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
+                        // first upload the aep input from source path
+                        UploadAEPInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
+                        // then submit the job
+                        SubmitAEPJob(new Guid(projectId)).GetAwaiter().GetResult();
+                        IsAEPJobSubmitted = true;
+                    }
+
+                    //aep
+
+                    string[] aepModules = { "loads", "energy", "exports" };
+                    var aepModuleCount = projectJobsStatus.Where(q => aepModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
+                    Console.WriteLine($"aepModuleCount {aepModuleCount} anyPendingJob {anyPendingJob}");
+                    _logger.LogInformation($"{projectId} aepModuleCount {aepModuleCount} anyPendingJob {anyPendingJob}");
+
+                    if (!anyPendingJob && aepModuleCount > 0)
+                    {
+                        // todo: download the input to the destination path
+                        DownloadProjectResult(new Guid(projectId), DestinationPath).GetAwaiter().GetResult();
+                        //if energy is failed
+                        var isAnyEnergyFailed = projectJobsStatus.Any(q => q.Module == Module.Energy && q.Status == Status.Failed);
+                        var isAnyLoadFailed = projectJobsStatus.Any(q => q.Module == Module.Loads && q.Status == Status.Failed);
+                        if (isAnyEnergyFailed || isAnyLoadFailed || aepModuleCount == 3)
+                        {
+                            _logger.LogInformation("everythig completed successfully {proj}", projectId);
+                            Environment.Exit(0);
+                        }
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    _logger.LogError(ex, " error {project} {message}", projectId, ex.Message);
                 }
 
+                //end of while loop
             }
             Environment.Exit(1);
         }

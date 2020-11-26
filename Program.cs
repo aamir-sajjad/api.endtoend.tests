@@ -31,27 +31,27 @@ namespace Core.API.EndToEnd.Tests
         {
             Log.Logger = Logger;
 
+            #region input from args
+
+            if (args.Length == 0 || args.Length < 3)
+            {
+                Console.WriteLine("Please provide 1:project id(GUID), 2:source path and 3:destination path.");
+                Environment.Exit(1);
+            }
+
+            var projectId = args[0];
+            var sourcePath = args[1];
+            var destinationPath = args[2];
+
+            Console.WriteLine($"Input paramerters are 1:project id {projectId} 2:source path {sourcePath} 3:destination path {destinationPath}");
+
+            #endregion input from args
+
             try
             {
 
                 Console.WriteLine("Test Application Starting...");
                 Log.Information("Core API EndToEnd Test Application Starting...");
-
-                #region input from args
-
-                if (args.Length == 0 || args.Length < 3)
-                {
-                    Console.WriteLine("Please provide 1:project id(GUID), 2:source path and 3:destination path.");
-                    Environment.Exit(1);
-                }
-
-                var projectId = args[0];
-                var sourcePath = args[1];
-                var destinationPath = args[2];
-
-                Console.WriteLine($"Input paramerters are 1:project id {projectId} 2:source path {sourcePath} 3:destination path {destinationPath}");
-
-                #endregion input from args
 
                 #region Experimental Code
 
@@ -111,7 +111,7 @@ namespace Core.API.EndToEnd.Tests
             {
                 Console.WriteLine("Core API EndToEnd Exception...!");
                 Console.WriteLine($"Main: {ex.Message}");
-                Log.Error(ex, "Core API EndToEnd Exception {message}", ex.Message);
+                Log.Error(ex, "Core API EndToEnd Exception {projectid} {message}", projectId, ex.Message);
                 await Task.Delay(1800);
                 Environment.Exit(1);
             }
