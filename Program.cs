@@ -134,7 +134,7 @@ namespace Core.API.EndToEnd.Tests
 
             services.AddLogging(builder =>
             {
-                builder.SetMinimumLevel(LogLevel.Information);
+                builder.SetMinimumLevel(LogLevel.Error);
                 builder.AddSerilog(logger: Logger, dispose: true);
             });
 

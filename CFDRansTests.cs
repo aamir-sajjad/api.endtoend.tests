@@ -234,7 +234,7 @@ namespace Core.API.EndToEnd.Tests
 
                         if (!anyPendingJob && synthesisModuleCount == 2 && !IsAEPJobSubmitted)
                         {
-                            
+
                             // todo: submit aep job
                             // first upload the aep input from source path
                             UploadAEPInput(new Guid(projectId), SourcePath).GetAwaiter().GetResult();
@@ -375,16 +375,16 @@ namespace Core.API.EndToEnd.Tests
             {
                 try
                 {
-                    Console.WriteLine($"CheckStatusInInterval called at {DateTime.Now.ToShortTimeString()}");
+                    //Console.WriteLine($"CheckStatusInInterval called at {DateTime.Now.ToShortTimeString()}");
                     await Task.Delay(5000);
 
                     var projectJobsStatus = GetProjectStatus(projectId).GetAwaiter().GetResult();
 
-                    foreach (var jobStatus in projectJobsStatus)
-                    {
-                        Console.WriteLine($"job {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
-                        _logger.LogInformation($"project {projectId} job IsSynthesisJobSubmitted {IsSynthesisJobSubmitted} {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
-                    }
+                    //foreach (var jobStatus in projectJobsStatus)
+                    //{
+                    //    Console.WriteLine($"job {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
+                    //    _logger.LogInformation($"project {projectId} job IsSynthesisJobSubmitted {IsSynthesisJobSubmitted} {jobStatus.JobId} module {jobStatus.Module} status {jobStatus.Status}");
+                    //}
 
 
                     var anyPendingJob = projectJobsStatus.Any(x => x.Status == Status.InProgress || x.Status == Status.Created);
@@ -392,8 +392,8 @@ namespace Core.API.EndToEnd.Tests
 
                     string[] cfdModules = { "terrain", "windfields" };
                     var cfdModuleCount = projectJobsStatus.Where(q => cfdModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
-                    Console.WriteLine($"cfdModuleCount {cfdModuleCount} anyPendingJob {anyPendingJob}");
-                    _logger.LogInformation($"{projectId} cfdModuleCount {cfdModuleCount} anyPendingJob {anyPendingJob}");
+                    //Console.WriteLine($"cfdModuleCount {cfdModuleCount} anyPendingJob {anyPendingJob}");
+                    //_logger.LogInformation($"{projectId} cfdModuleCount {cfdModuleCount} anyPendingJob {anyPendingJob}");
 
                     var isAnyWindfieldsJobCompleted = projectJobsStatus.Any(q => q.Status == Status.Completed && q.Module == Module.Windfields);
 
@@ -411,8 +411,8 @@ namespace Core.API.EndToEnd.Tests
 
                     string[] synthesisModules = { "objects", "windresources" };
                     var synthesisModuleCount = projectJobsStatus.Where(q => synthesisModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
-                    Console.WriteLine($"synthesisModuleCount {synthesisModuleCount} anyPendingJob {anyPendingJob}");
-                    _logger.LogInformation($"{projectId} synthesisModuleCount {synthesisModuleCount} anyPendingJob {anyPendingJob}");
+                    //Console.WriteLine($"synthesisModuleCount {synthesisModuleCount} anyPendingJob {anyPendingJob}");
+                    //_logger.LogInformation($"{projectId} synthesisModuleCount {synthesisModuleCount} anyPendingJob {anyPendingJob}");
 
                     if (!anyPendingJob && synthesisModuleCount == 2 && !IsAEPJobSubmitted)
                     {
@@ -428,8 +428,8 @@ namespace Core.API.EndToEnd.Tests
 
                     string[] aepModules = { "loads", "energy", "exports" };
                     var aepModuleCount = projectJobsStatus.Where(q => aepModules.Contains(q.Module.ToString().ToLower())).Select(q => q.Module).Distinct().Count();
-                    Console.WriteLine($"aepModuleCount {aepModuleCount} anyPendingJob {anyPendingJob}");
-                    _logger.LogInformation($"{projectId} aepModuleCount {aepModuleCount} anyPendingJob {anyPendingJob}");
+                    //Console.WriteLine($"aepModuleCount {aepModuleCount} anyPendingJob {anyPendingJob}");
+                    //_logger.LogInformation($"{projectId} aepModuleCount {aepModuleCount} anyPendingJob {anyPendingJob}");
 
                     if (!anyPendingJob && aepModuleCount > 0)
                     {
@@ -440,7 +440,7 @@ namespace Core.API.EndToEnd.Tests
                         var isAnyLoadFailed = projectJobsStatus.Any(q => q.Module == Module.Loads && q.Status == Status.Failed);
                         if (isAnyEnergyFailed || isAnyLoadFailed || aepModuleCount == 3)
                         {
-                            _logger.LogInformation("everythig completed successfully {proj}", projectId);
+                           // _logger.LogInformation("everythig completed successfully {proj}", projectId);
                             Environment.Exit(0);
                         }
                     }
@@ -448,8 +448,8 @@ namespace Core.API.EndToEnd.Tests
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.Message);
-                    _logger.LogError(ex, " error {project} {message}", projectId, ex.Message);
+                    //    Console.WriteLine(ex.Message);
+                    //    _logger.LogError(ex, " error {project} {message}", projectId, ex.Message);
                 }
 
                 //end of while loop
