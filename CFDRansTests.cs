@@ -1,6 +1,5 @@
 ﻿using Core.API.Common;
 using Core.API.Hubs.Model;
-using Core.API.TestHelper;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -8,9 +7,7 @@ using Polly;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -41,7 +38,7 @@ namespace Core.API.EndToEnd.Tests
         Task<string> SubmitCFDJob(Guid projectId);
         Task<HubConnection> ConnectToJobNotificationHub(string accessToken, string projectId);
         Task<List<JobsStatusViewModel>> GetProjectStatus(string projectId);
-        Task CheckStatusInInterval(string projectId);
+        Task RunWindSimCoreJobs(string projectId);
     }
 
     public class CFDRansTests : ICFDRansTests
@@ -63,7 +60,7 @@ namespace Core.API.EndToEnd.Tests
         {
             _httpClient = httpClient;
             _httpClient.Timeout = TimeSpan.FromMinutes(20);
-            accessToken = AuthenticationHelper.GetToken(_httpClient).GetAwaiter().GetResult();
+            accessToken = AuthenticationHelper.GetToken(_httpClient, configuration).GetAwaiter().GetResult();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             _configuration = configuration;
             _dataLoader = dataLoader;
@@ -369,7 +366,7 @@ namespace Core.API.EndToEnd.Tests
             }
         }
 
-        public async Task CheckStatusInInterval(string projectId)
+        public async Task RunWindSimCoreJobs(string projectId)
         {
             while ((DateTime.UtcNow - startTime) < TimeSpan.FromMinutes(280))
             {
@@ -440,7 +437,7 @@ namespace Core.API.EndToEnd.Tests
                         var isAnyLoadFailed = projectJobsStatus.Any(q => q.Module == Module.Loads && q.Status == Status.Failed);
                         if (isAnyEnergyFailed || isAnyLoadFailed || aepModuleCount == 3)
                         {
-                           // _logger.LogInformation("everythig completed successfully {proj}", projectId);
+                            // _logger.LogInformation("everythig completed successfully {proj}", projectId);
                             Environment.Exit(0);
                         }
                     }

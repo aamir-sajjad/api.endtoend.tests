@@ -24,26 +24,29 @@ namespace Core.API.EndToEnd.Tests
         public static Serilog.ILogger Logger { get; } = new LoggerConfiguration()
             .MinimumLevel.Information()
             .Enrich.FromLogContext()
-            .WriteTo.Seq(@"http://51.138.23.89")
+            .WriteTo.Seq(@Configuration["WindSim:SEQUrl"])
             .CreateLogger();
 
         static async Task Main(string[] args)
         {
             Log.Logger = Logger;
+            var projectId = string.Empty;
+            var sourcePath = string.Empty;
+            var destinationPath = string.Empty;
 
             #region input from args
 
-            if (args.Length == 0 || args.Length < 3)
-            {
-                Console.WriteLine("Please provide 1:project id(GUID), 2:source path and 3:destination path.");
-                Environment.Exit(1);
-            }
+            //if (args.Length == 0 || args.Length < 3)
+            //{
+            //    Console.WriteLine("Please provide 1:project id(GUID), 2:source path and 3:destination path.");
+            //    Environment.Exit(1);
+            //}
 
-            var projectId = args[0];
-            var sourcePath = args[1];
-            var destinationPath = args[2];
+            //projectId = args[0];
+            //sourcePath = args[1];
+            //destinationPath = args[2];
 
-            Console.WriteLine($"Input paramerters are 1:project id {projectId} 2:source path {sourcePath} 3:destination path {destinationPath}");
+            //Console.WriteLine($"Input paramerters are 1:project id {projectId} 2:source path {sourcePath} 3:destination path {destinationPath}");
 
             #endregion input from args
 
@@ -53,19 +56,19 @@ namespace Core.API.EndToEnd.Tests
                 Console.WriteLine("Test Application Starting...");
                 Log.Information("Core API EndToEnd Test Application Starting...");
 
-                #region Experimental Code
+                #region input from console
 
-                //Console.WriteLine("Please enter the project id");
-                //var projectId = Console.ReadLine();
-                //Console.WriteLine($"project id {projectId}");
+                Console.WriteLine("Please enter the project id");
+                projectId = Console.ReadLine();
+                Console.WriteLine($"project id {projectId}");
 
-                //Console.WriteLine("Please enter the source path");
-                //var sourcePath = Console.ReadLine();
-                //Console.WriteLine($"source path {sourcePath}");
+                Console.WriteLine("Please enter the source path");
+                sourcePath = Console.ReadLine();
+                Console.WriteLine($"source path {sourcePath}");
 
-                //Console.WriteLine("Please enter the detination path");
-                //var destinationPath = Console.ReadLine();
-                //Console.WriteLine($"detination path {destinationPath}");
+                Console.WriteLine("Please enter the detination path");
+                destinationPath = Console.ReadLine();
+                Console.WriteLine($"detination path {destinationPath}");
 
                 // copy the the file from source folder and place it in desitnation folder
                 // source path: D:\Project\CoreAPIEndToEndTests\Core.API.EndToEnd.Tests\SEWPGProjectInput
@@ -78,7 +81,7 @@ namespace Core.API.EndToEnd.Tests
                 //    Environment.Exit(1);
                 //}
 
-                #endregion Expermintal Code
+                #endregion input from console
 
                 #region Cloud Job
 
@@ -97,7 +100,7 @@ namespace Core.API.EndToEnd.Tests
                 // receive progress status, and based on progess status download the output
                 //await cfdRansTests.ConnectToJobNotificationHub(accessToken, projectId.ToString());
                 await Task.Delay(1800);
-                await cfdRansTests.CheckStatusInInterval(projectId);
+                await cfdRansTests.RunWindSimCoreJobs(projectId);
 
                 #endregion Cloud Job
 
@@ -128,13 +131,13 @@ namespace Core.API.EndToEnd.Tests
             services.AddSingleton<IDataLoader, BlobStorageDataLoader>();
             services.AddHttpClient<ICFDRansTests, CFDRansTests>(client =>
             {
-                client.BaseAddress = new Uri(@"https://sewpg-api.azurewebsites.net/");
+                client.BaseAddress = new Uri(@Configuration["WindSim:ApplicationBaseUrl"]);
             })
             .AddPolicyHandler(GetRetryPolicy());
 
             services.AddLogging(builder =>
             {
-                builder.SetMinimumLevel(LogLevel.Error);
+                builder.SetMinimumLevel(LogLevel.Information);
                 builder.AddSerilog(logger: Logger, dispose: true);
             });
 

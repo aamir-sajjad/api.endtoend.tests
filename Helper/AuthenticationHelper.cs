@@ -1,4 +1,5 @@
 ﻿using Core.API.Common;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -10,15 +11,11 @@ namespace Core.API.EndToEnd.Tests
 {
     public class AuthenticationHelper
     {
-        public static async Task<string> GetToken(HttpClient httpClient)
+        public static async Task<string> GetToken(HttpClient httpClient, IConfiguration configuration)
         {
             var token = string.Empty;
-            //var registerModel = new RegisterModel() { Email = $"a{Guid.NewGuid().ToString().Substring(0, 4)}@a.com", Password = "Test@1234", OrganizationId = new Guid("d1276331-0a63-4bc9-a579-b7d40ed22040") };
-            //var contentRegister = JsonSerializer.Serialize(registerModel);
-            //HttpContent httpContentRegister = new StringContent(contentRegister, Encoding.UTF8, "application/json");
-            //await httpClient.PostAsync("api/Authentication/Register", httpContentRegister);
 
-            var loginModel = new LoginModel() { Email = "sewpguser@windsim.com", Password = "sx@232kLk" };
+            var loginModel = new LoginModel() { Email = configuration["WindSim:UserName"], Password = configuration["WindSim:Password"] };
             var content = JsonSerializer.Serialize(loginModel);
             HttpContent httpContent = new StringContent(content, Encoding.UTF8, "application/json");
             var response = await httpClient.PostAsync("api/Authentication/Login", httpContent);
